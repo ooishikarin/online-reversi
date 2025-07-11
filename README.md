@@ -1,21 +1,74 @@
-# オンライン対戦型リバーシ
+// Firebaseの初期化
+const firebaseConfig = {
+  apiKey: "AIzaSyCvXvcb4GkGKv-9CPu_8ANZjijuJAgOV0k",
+  authDomain: "reversi-online-f5791.firebaseapp.com",
+  projectId: "reversi-online-f5791",
+  storageBucket: "reversi-online-f5791.firebasestorage.app",
+  messagingSenderId: "623914396117",
+  appId: "1:623914396117:web:56b0f8d7d449325dc3b55c"
+};
 
-## 概要
-Webブラウザ上で動作するオンライン対戦型のリバーシゲームです。無料のFirebase Web APIを利用し、ユーザーがリアルタイムで対戦できる機能を備えています。直感的なインターフェースと安定した動作を実現しました。
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js";
 
-## 動作プラットフォーム
-Webアプリ（Windows / macOS / Linux / iOS / Android に対応）
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-## 開発環境
-Visual Studio Code, GitHub, Node.js, Firebase
+let board = Array(8).fill(null).map(() => Array(8).fill(null));
+let currentPlayer = 'black';
+const roomRef = ref(db, 'rooms/room1');
 
-## プログラミング言語
-JavaScript, HTML, CSS
+function initializeBoard() {
+  board[3][3] = 'white';
+  board[3][4] = 'black';
+  board[4][3] = 'black';
+  board[4][4] = 'white';
+  syncBoard();
+  renderBoard();
+}
 
-## 使用API
-Firebase Realtime Database（無料枠）
+function renderBoard() {
+  const boardEl = document.getElementById("board");
+  boardEl.innerHTML = "";
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      if (board[y][x]) {
+        const stone = document.createElement("div");
+        stone.className = "stone " + board[y][x];
+        cell.appendChild(stone);
+      }
+      cell.addEventListener("click", () => handleMove(x, y));
+      boardEl.appendChild(cell);
+    }
+  }
+}
 
-## 制作者情報
-- 学生証番号：3CPH3104
-- 氏名：大石 華鈴
-- メールアドレス：3CPH3104@tokai.ac.jp
+function handleMove(x, y) {
+  if (board[y][x]) return;
+  board[y][x] = currentPlayer;
+  currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
+  syncBoard();
+  renderBoard();
+}
+
+function syncBoard() {
+  set(roomRef, {
+    board,
+    currentPlayer
+  });
+}
+
+onValue(roomRef, (snapshot) => {
+  const data = snapshot.val();
+  if (data) {
+    board = data.board;
+    currentPlayer = data.currentPlayer;
+    renderBoard();
+  }
+});
+
+window.onload = () => {
+  initializeBoard();
+};
